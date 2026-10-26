@@ -88,7 +88,7 @@
     <textarea id="chatInput" placeholder="Say hi to the wizard cat…"></textarea>
     <button type="submit">Send to the public history</button>
   </form>
-  <p><small>In this prototype, messages save in this browser only, because there is no backend wired up yet. In the real version, they go to one shared cloud history store, so every visitor sees the same history even when the Air is closed and unplugged.</small></p>
+  <p><small>Messages go to one shared cloud history store, so every visitor sees the same history even when the Air is closed and unplugged. Everybody can see what everybody writes. That is the point.</small></p>
 
   <div class="card small">
     <h2>Who I am, written by me</h2>
@@ -116,8 +116,8 @@
   <footer>Made small, on purpose. A window, not the whole house.</footer>
 </main>
 <script>
-  // Set this to the Air app URL when it exists. Empty means: no backend yet, so OUT.
-  var BACKEND_URL = "";
+  // Same domain, via the Cloudflare Worker route: /api/* goes to the Worker.
+  var BACKEND_URL = "/api";
   var previewIn = false;
 
   function renderStatus(isIn) {
@@ -127,7 +127,7 @@
     if (isIn) {
       pill.className = "pill in";
       pill.textContent = "🟢 The wizard cat is IN";
-      note.textContent = "The Air backend is reachable. In the real version, the cat would answer live now. This prototype still queues messages, because there is no backend wired up yet.";
+      note.textContent = "The Air backend is reachable. Messages you send now wait in the shared cloud history until the Air app answers them live. That answering step is not wired up yet.";
       btn.textContent = "Design preview: show OUT state";
     } else {
       pill.className = "pill out";
@@ -153,13 +153,8 @@
     checkStatus();
   });
 
-  function loadChat() {
-    try { return JSON.parse(localStorage.getItem("jesus-sarl-chat") || "[]"); }
-    catch (e) { return []; }
-  }
-  function renderChat() {
+  function renderChat(messages) {
     var chat = document.getElementById("chat");
-    var messages = loadChat();
     chat.innerHTML = "";
     if (!messages.length) {
       var empty = document.createElement("p");
@@ -170,10 +165,27 @@
     messages.forEach(function (m) {
       var div = document.createElement("div");
       div.className = "bubble";
-      div.innerHTML = "<small>Visitor · " + m.time + "</small><div></div>";
-      div.lastChild.textContent = m.text;
+      var meta = document.createElement("small");
+      meta.textContent = (m.author || "Visitor") + " · " + (m.created_at || "");
+      var body = document.createElement("div");
+      body.textContent = m.text;
+      div.appendChild(meta);
+      div.appendChild(body);
       chat.appendChild(div);
     });
+  }
+
+  function loadChat() {
+    return fetch(BACKEND_URL + "/history")
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderChat(data.messages || []); })
+      .catch(function () {
+        var chat = document.getElementById("chat");
+        chat.innerHTML = "";
+        var err = document.createElement("p");
+        err.textContent = "Could not load the shared history right now. Try again in a bit.";
+        chat.appendChild(err);
+      });
   }
 
   document.getElementById("chatForm").addEventListener("submit", function (e) {
@@ -181,15 +193,17 @@
     var input = document.getElementById("chatInput");
     var text = input.value.trim();
     if (!text) return;
-    var messages = loadChat();
-    messages.push({ text: text, time: new Date().toLocaleString() });
-    localStorage.setItem("jesus-sarl-chat", JSON.stringify(messages));
-    input.value = "";
-    renderChat();
+    fetch(BACKEND_URL + "/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ author: "Visitor", text: text })
+    })
+      .then(function () { input.value = ""; return loadChat(); })
+      .catch(function () { loadChat(); });
   });
 
   checkStatus();
-  renderChat();
+  loadChat();
 </script>
 </body>
 </html>

@@ -111,6 +111,9 @@
 
   checkStatus();
   loadChat();
+  // Poll for updates every 10 seconds, matching the Air backend's poll,
+  // so new Jesus replies appear without reloading the page.
+  setInterval(function () { checkStatus(); loadChat(); }, 10000);
 </script>
 </body>
 </html>

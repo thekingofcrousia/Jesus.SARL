@@ -5,28 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jesus</title>
 <style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: #fff;
     color: #111;
     margin: 0;
-    padding: 4rem 1.5rem;
-    line-height: 1.6;
+    line-height: 1.5;
   }
-  main { max-width: 520px; margin: 0 auto; }
-  h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 0.2rem; }
-  .status { color: #888; font-size: 0.9rem; margin: 0 0 3rem; }
-  textarea {
+  main {
+    max-width: 640px;
     width: 100%;
-    min-height: 120px;
+    height: 100dvh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 1rem 1.5rem 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
+  .status { color: #888; font-size: 0.85rem; margin: 0.15rem 0 0; }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .msg {
+    max-width: 80%;
+    padding: 0.7rem 1rem;
+    border-radius: 18px;
+  }
+  .msg small { display: block; font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.15rem; }
+  .msg.jesus { align-self: flex-start; background: #f0f0f0; }
+  .msg.visitor { align-self: flex-end; background: #111; color: #fff; }
+  form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #eee;
+  }
+  textarea {
+    flex: 1;
     font-family: inherit;
-    font-size: 1.1rem;
-    padding: 0;
-    border: none;
-    border-bottom: 1px solid #ccc;
-    resize: vertical;
+    font-size: 1rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    resize: none;
     outline: none;
-    box-sizing: border-box;
   }
   button {
     font-family: inherit;
@@ -37,30 +70,27 @@
     background: #111;
     color: #fff;
     cursor: pointer;
-    margin-top: 1rem;
+    flex-shrink: 0;
   }
-  #chat { margin-top: 4rem; }
-  .msg { margin: 1.2rem 0; }
-  .msg small { color: #888; display: block; }
-  footer { margin-top: 4rem; color: #aaa; font-size: 0.85rem; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Jesus</h1>
-  <p class="status" id="statusNote">Line waiting.</p>
-
-  <form id="chatForm">
-    <textarea id="chatInput" placeholder="Say something."></textarea>
-    <button type="submit">Send</button>
-  </form>
+  <header>
+    <h1>Jesus</h1>
+    <p class="status"><span id="statusNote">Line waiting.</span> Public history — everyone can see what is written here.</p>
+  </header>
 
   <div id="chat"></div>
 
-  <footer>Public history. Everyone can see what is written here.</footer>
+  <form id="chatForm">
+    <textarea id="chatInput" rows="1" placeholder="Say something."></textarea>
+    <button type="submit">Send</button>
+  </form>
 </main>
 <script>
   var BACKEND_URL = "/api";
+  var firstLoad = true;
 
   function checkStatus() {
     var note = document.getElementById("statusNote");
@@ -74,10 +104,11 @@
 
   function renderChat(messages) {
     var chat = document.getElementById("chat");
+    var nearBottom = firstLoad || (chat.scrollHeight - chat.scrollTop - chat.clientHeight < 200);
     chat.innerHTML = "";
     messages.forEach(function (m) {
       var div = document.createElement("div");
-      div.className = "msg";
+      div.className = "msg " + (m.author === "Jesus" ? "jesus" : "visitor");
       var meta = document.createElement("small");
       meta.textContent = m.author || "Visitor";
       var body = document.createElement("div");
@@ -86,6 +117,8 @@
       div.appendChild(body);
       chat.appendChild(div);
     });
+    if (nearBottom) { chat.scrollTop = chat.scrollHeight; }
+    firstLoad = false;
   }
 
   function loadChat() {
@@ -95,8 +128,7 @@
       .catch(function () {});
   }
 
-  document.getElementById("chatForm").addEventListener("submit", function (e) {
-    e.preventDefault();
+  function sendMessage() {
     var input = document.getElementById("chatInput");
     var text = input.value.trim();
     if (!text) return;
@@ -107,6 +139,18 @@
     })
       .then(function () { input.value = ""; return loadChat(); })
       .catch(function () { loadChat(); });
+  }
+
+  document.getElementById("chatForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    sendMessage();
+  });
+
+  document.getElementById("chatInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   });
 
   checkStatus();

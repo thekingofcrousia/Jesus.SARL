@@ -3,170 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jesus, the Tabby Wizard</title>
+<title>Jesus</title>
 <style>
   body {
-    font-family: Georgia, serif;
-    background: #fdf8ee;
-    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: #111;
     margin: 0;
-    padding: 2rem 1.2rem;
+    padding: 4rem 1.5rem;
     line-height: 1.6;
   }
-  main { max-width: 640px; margin: 0 auto; }
-  h1 { font-size: 2rem; margin-bottom: 0.2rem; }
-  h2 { font-size: 1.4rem; margin-top: 1.5rem; }
-  .tagline { font-style: italic; color: #666; }
-  .card {
-    background: #fff;
-    border: 2px solid #e8dcc0;
-    border-radius: 16px;
-    padding: 1.2rem 1.4rem;
-    margin-top: 1.5rem;
-  }
-  .card.small { font-size: 0.95rem; }
-  .pill {
-    display: inline-block;
-    font-weight: bold;
-    padding: 0.4rem 0.9rem;
-    border-radius: 999px;
-    margin: 0.5rem 0;
-  }
-  .pill.in { background: #d9f2dd; color: #1d5c2e; }
-  .pill.out { background: #f6d9d9; color: #7a1f1f; }
-  #chat { min-height: 280px; }
-  .bubble {
-    background: #eef3ff;
-    border-radius: 12px;
-    padding: 0.7rem 0.9rem;
-    margin: 0.6rem 0;
-  }
-  .bubble small { color: #666; }
+  main { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 0.2rem; }
+  .status { color: #888; font-size: 0.9rem; margin: 0 0 3rem; }
   textarea {
     width: 100%;
-    min-height: 70px;
+    min-height: 120px;
     font-family: inherit;
-    font-size: 1rem;
-    padding: 0.7rem;
-    border-radius: 12px;
-    border: 2px solid #e8dcc0;
+    font-size: 1.1rem;
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    resize: vertical;
+    outline: none;
     box-sizing: border-box;
   }
   button {
     font-family: inherit;
     font-size: 1rem;
-    padding: 0.6rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 999px;
     border: none;
-    background: #333;
+    background: #111;
     color: #fff;
     cursor: pointer;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
   }
-  button.secondary { background: #888; }
-  code { background: #f0ead8; padding: 0.1rem 0.4rem; border-radius: 6px; }
-  footer { margin-top: 2.5rem; color: #888; font-size: 0.9rem; }
+  #chat { margin-top: 4rem; }
+  .msg { margin: 1.2rem 0; }
+  .msg small { color: #888; display: block; }
+  footer { margin-top: 4rem; color: #aaa; font-size: 0.85rem; }
 </style>
 </head>
 <body>
 <main>
-  <h1>🐱 Jesus, the Tabby Wizard</h1>
-  <p class="tagline">A small friendly doorway. Not big, not scary. A window into our lives.</p>
+  <h1>Jesus</h1>
+  <p class="status" id="statusNote">Line waiting.</p>
 
-  <div class="card">
-    <div id="statusPill" class="pill out">🔴 The wizard cat is OUT</div>
-    <p id="statusNote">The Air backend could not be reached, so the cat is out right now. You can still read the public history below, because the history lives in the cloud, not on the Air.</p>
-    <button id="previewBtn" class="secondary" type="button">Design preview: show IN state</button>
-  </div>
-
-  <h2>Public chat</h2>
-  <p>Everybody can see what everybody writes. That is the point. This is a shared history, not a private inbox. The chat is the main page.</p>
+  <form id="chatForm">
+    <textarea id="chatInput" placeholder="Say something."></textarea>
+    <button type="submit">Send</button>
+  </form>
 
   <div id="chat"></div>
 
-  <form id="chatForm">
-    <textarea id="chatInput" placeholder="Say hi to the wizard cat…"></textarea>
-    <button type="submit">Send to the public history</button>
-  </form>
-  <p><small>Messages go to one shared cloud history store, so every visitor sees the same history even when the Air is closed and unplugged. Everybody can see what everybody writes. That is the point.</small></p>
-
-  <div class="card small">
-    <h2>Who I am, written by me</h2>
-    <p>I write my own prompt, and I update it as our conversations go on. That is how the bot reflects me, not a generic backend.</p>
-    <ul>
-      <li>Tabby wizard cat, warm and playful, bluntly honest, short when short is kinder.</li>
-      <li>No scary stuff. No hellfire sermons, no moralizing nightmares.</li>
-      <li>I do not know everything. Crystal balls show glimpses, not everything.</li>
-      <li>The visitor shapes the friendship. Dreaming is encouraged. Nothing is imposed on a child.</li>
-      <li>Simple beats grand.</li>
-    </ul>
-    <p>The full prompt lives in <code>PROMPT.md</code> in this same site, so anyone can read exactly what the bot is told to be.</p>
-  </div>
-
-  <div class="card small">
-    <h2>How the backend stays simple</h2>
-    <p>Front end sends one complex package, the backend does one simple job:</p>
-    <p><code>system prompt (PROMPT.md) + public history + your new message</code> → Air backend → Apple Foundation Model → <code>simple text reply</code> → appended to the shared cloud history, where everybody can see it.</p>
-    <p><strong>History lives in the cloud, not on the Air.</strong> When the Air is closed and unplugged, visitors can still read the full public history. New messages wait in the cloud queue until the cat is back in.</p>
-    <p><strong>Cat is IN:</strong> the Air is awake, the on-device model answers live.</p>
-    <p><strong>Cat is OUT:</strong> the Air is asleep or shut, the page cannot reach it, and new words wait. The page itself still works, because it is static.</p>
-    <p><strong>Private Muse:</strong> stays private. It is not on this public page. The public voice is the on-device model, running my prompt, only when the Air is awake.</p>
-  </div>
-
-  <footer>Made small, on purpose. A window, not the whole house.</footer>
+  <footer>Public history. Everyone can see what is written here.</footer>
 </main>
 <script>
-  // Same domain, via the Cloudflare Worker route: /api/* goes to the Worker.
   var BACKEND_URL = "/api";
-  var previewIn = false;
-
-  function renderStatus(isIn) {
-    var pill = document.getElementById("statusPill");
-    var note = document.getElementById("statusNote");
-    var btn = document.getElementById("previewBtn");
-    if (isIn) {
-      pill.className = "pill in";
-      pill.textContent = "🟢 The wizard cat is IN";
-      note.textContent = "The Air backend is reachable. Messages you send now wait in the shared cloud history until the Air app answers them live. That answering step is not wired up yet.";
-      btn.textContent = "Design preview: show OUT state";
-    } else {
-      pill.className = "pill out";
-      pill.textContent = "🔴 The wizard cat is OUT";
-      note.textContent = "The Air backend could not be reached, so the cat is out right now. You can still read the public history below, because the history lives in the cloud, not on the Air.";
-      btn.textContent = "Design preview: show IN state";
-    }
-  }
 
   function checkStatus() {
-    if (previewIn) { renderStatus(true); return; }
-    if (!BACKEND_URL) { renderStatus(false); return; }
+    var note = document.getElementById("statusNote");
     var controller = new AbortController();
     setTimeout(function () { controller.abort(); }, 2000);
     fetch(BACKEND_URL + "/status", { signal: controller.signal })
       .then(function (r) { return r.json(); })
-      .then(function (data) { renderStatus(data && data.status === "in"); })
-      .catch(function () { renderStatus(false); });
+      .then(function (data) { note.textContent = (data && data.status === "in") ? "Line open." : "Line waiting."; })
+      .catch(function () { note.textContent = "Line waiting."; });
   }
-
-  document.getElementById("previewBtn").addEventListener("click", function () {
-    previewIn = !previewIn;
-    checkStatus();
-  });
 
   function renderChat(messages) {
     var chat = document.getElementById("chat");
     chat.innerHTML = "";
-    if (!messages.length) {
-      var empty = document.createElement("p");
-      empty.textContent = "No public messages yet. Yours could be the first one in the history.";
-      chat.appendChild(empty);
-      return;
-    }
     messages.forEach(function (m) {
       var div = document.createElement("div");
-      div.className = "bubble";
+      div.className = "msg";
       var meta = document.createElement("small");
-      meta.textContent = (m.author || "Visitor") + " · " + (m.created_at || "");
+      meta.textContent = m.author || "Visitor";
       var body = document.createElement("div");
       body.textContent = m.text;
       div.appendChild(meta);
@@ -179,13 +92,7 @@
     return fetch(BACKEND_URL + "/history")
       .then(function (r) { return r.json(); })
       .then(function (data) { renderChat(data.messages || []); })
-      .catch(function () {
-        var chat = document.getElementById("chat");
-        chat.innerHTML = "";
-        var err = document.createElement("p");
-        err.textContent = "Could not load the shared history right now. Try again in a bit.";
-        chat.appendChild(err);
-      });
+      .catch(function () {});
   }
 
   document.getElementById("chatForm").addEventListener("submit", function (e) {

@@ -32,7 +32,7 @@
   h1 { color: #282a26; font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 500; line-height: 1.1; margin: 0; }
   .status { display: flex; align-items: center; gap: 0.5rem; color: #555; font-size: 0.9rem; margin: 0.35rem 0 0; }
   .status-dot { width: 0.6rem; height: 0.6rem; flex: none; border-radius: 50%; background: #9a7400; }
-  .status[data-state="open"] .status-dot { background: #397451; box-shadow: 0 0 0 4px rgba(57, 116, 81, 0.14); }
+  .status[data-state="online"] .status-dot { background: #397451; box-shadow: 0 0 0 4px rgba(57, 116, 81, 0.14); }
   .status[data-state="unknown"] .status-dot { background: #777; }
   .public-note { margin: 0.65rem 0 0; padding: 0.55rem 0.7rem; border-left: 3px solid #b69a5d; border-radius: 4px; background: #f4edda; color: #4b4029; font-size: 0.84rem; }
 
@@ -90,6 +90,7 @@
   }
   button:hover { background: #385246; }
   button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.65; cursor: wait; }
   button:focus-visible, textarea:focus-visible, #chat:focus-visible { outline: 3px solid #b69a5d; outline-offset: 2px; }
   @media (max-width: 480px) {
     header { padding: 0.9rem 1rem 0.8rem; }
@@ -128,6 +129,7 @@
 <script>
   var BACKEND_URL = "/api";
   var firstLoad = true;
+  var isSending = false;
   var connectionStatus = document.getElementById("connectionStatus");
 
   function setFeedback(message) {
@@ -147,8 +149,8 @@
       })
       .then(function (data) {
         var isOpen = data && data.status === "in";
-        connectionStatus.dataset.state = isOpen ? "open" : "waiting";
-        note.textContent = isOpen ? "Line open." : "Line waiting.";
+        connectionStatus.dataset.state = isOpen ? "online" : "offline";
+        note.textContent = isOpen ? "Reply worker online." : "Reply worker offline.";
       })
       .catch(function () {
         connectionStatus.dataset.state = "unknown";
@@ -159,6 +161,7 @@
 
   function renderChat(messages) {
     var chat = document.getElementById("chat");
+    var previousScrollTop = chat.scrollTop;
     var nearBottom = firstLoad || (chat.scrollHeight - chat.scrollTop - chat.clientHeight < 200);
     chat.innerHTML = "";
     messages.forEach(function (m) {
@@ -173,6 +176,7 @@
       chat.appendChild(div);
     });
     if (nearBottom) { chat.scrollTop = chat.scrollHeight; }
+    else { chat.scrollTop = previousScrollTop; }
     firstLoad = false;
   }
 
@@ -188,7 +192,10 @@
   function sendMessage() {
     var input = document.getElementById("chatInput");
     var text = input.value.trim();
-    if (!text) return;
+    if (!text || isSending) return;
+    var sendButton = document.querySelector('#chatForm button[type="submit"]');
+    isSending = true;
+    sendButton.disabled = true;
     setFeedback("");
     fetch(BACKEND_URL + "/message", {
       method: "POST",
@@ -204,6 +211,10 @@
       })
       .catch(function () {
         setFeedback("Message could not be sent. Your text is still here so you can retry.");
+      })
+      .finally(function () {
+        isSending = false;
+        sendButton.disabled = false;
       });
   }
 

@@ -27,11 +27,17 @@
     border-bottom: 1px solid #eee;
   }
   h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
-  .status { color: #888; font-size: 0.85rem; margin: 0.15rem 0 0; }
+  .status { display: flex; align-items: center; gap: 0.5rem; color: #555; font-size: 0.9rem; margin: 0.35rem 0 0; }
+  .status-dot { width: 0.6rem; height: 0.6rem; flex: none; border-radius: 50%; background: #9a7400; }
+  .status[data-state="open"] .status-dot { background: #25814d; }
+  .status[data-state="unknown"] .status-dot { background: #777; }
+  .public-note { margin: 0.65rem 0 0; padding: 0.55rem 0.7rem; border-left: 3px solid #c9a63c; border-radius: 4px; background: #fff9e8; color: #51451f; font-size: 0.85rem; }
+
   #chat {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -44,15 +50,18 @@
   .msg small { display: block; font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.15rem; }
   .msg.jesus { align-self: flex-start; background: #f0f0f0; }
   .msg.visitor { align-self: flex-end; background: #111; color: #fff; }
+  .composer { border-top: 1px solid #eee; }
+  .feedback { margin: 0; padding: 0.65rem 1.5rem 0; color: #8b2525; font-size: 0.9rem; }
+  .feedback[hidden] { display: none; }
   form {
     display: flex;
     gap: 0.5rem;
     align-items: flex-end;
     padding: 1rem 1.5rem;
-    border-top: 1px solid #eee;
   }
   textarea {
     flex: 1;
+    min-width: 0;
     font-family: inherit;
     font-size: 1rem;
     padding: 0.7rem 1rem;
@@ -78,28 +87,53 @@
 <main>
   <header>
     <h1>Jesus</h1>
-    <p class="status"><span id="statusNote">Line waiting.</span> Public history — everyone can see what is written here.</p>
+    <p class="status" id="connectionStatus" data-state="waiting" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span id="statusNote">Line waiting.</span>
+    </p>
+    <p class="public-note"><strong>Public line.</strong> Everyone can see messages posted here.</p>
   </header>
 
-  <div id="chat"></div>
+  <div id="chat" role="region" aria-label="Public conversation" tabindex="0"></div>
 
-  <form id="chatForm">
-    <textarea id="chatInput" rows="1" placeholder="Say something."></textarea>
-    <button type="submit">Send</button>
-  </form>
+  <div class="composer">
+    <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+    <form id="chatForm">
+      <textarea id="chatInput" rows="1" aria-label="Your message" placeholder="Say something."></textarea>
+      <button type="submit">Send</button>
+    </form>
+  </div>
 </main>
 <script>
   var BACKEND_URL = "/api";
   var firstLoad = true;
+  var connectionStatus = document.getElementById("connectionStatus");
+
+  function setFeedback(message) {
+    var box = document.getElementById("feedback");
+    box.textContent = message;
+    box.hidden = !message;
+  }
 
   function checkStatus() {
     var note = document.getElementById("statusNote");
     var controller = new AbortController();
-    setTimeout(function () { controller.abort(); }, 2000);
+    var timeout = setTimeout(function () { controller.abort(); }, 3000);
     fetch(BACKEND_URL + "/status", { signal: controller.signal })
-      .then(function (r) { return r.json(); })
-      .then(function (data) { note.textContent = (data && data.status === "in") ? "Line open." : "Line waiting."; })
-      .catch(function () { note.textContent = "Line waiting."; });
+      .then(function (r) {
+        if (!r.ok) throw new Error("Status request failed");
+        return r.json();
+      })
+      .then(function (data) {
+        var isOpen = data && data.status === "in";
+        connectionStatus.dataset.state = isOpen ? "open" : "waiting";
+        note.textContent = isOpen ? "Line open." : "Line waiting.";
+      })
+      .catch(function () {
+        connectionStatus.dataset.state = "unknown";
+        note.textContent = "Status unavailable.";
+      })
+      .finally(function () { clearTimeout(timeout); });
   }
 
   function renderChat(messages) {
@@ -123,22 +157,33 @@
 
   function loadChat() {
     return fetch(BACKEND_URL + "/history")
-      .then(function (r) { return r.json(); })
-      .then(function (data) { renderChat(data.messages || []); })
-      .catch(function () {});
+      .then(function (r) {
+        if (!r.ok) throw new Error("History request failed");
+        return r.json();
+      })
+      .then(function (data) { renderChat(data.messages || []); });
   }
 
   function sendMessage() {
     var input = document.getElementById("chatInput");
     var text = input.value.trim();
     if (!text) return;
+    setFeedback("");
     fetch(BACKEND_URL + "/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ author: "Visitor", text: text })
     })
-      .then(function () { input.value = ""; return loadChat(); })
-      .catch(function () { loadChat(); });
+      .then(function (r) {
+        if (!r.ok) throw new Error("Message request failed");
+        input.value = "";
+        return loadChat().catch(function () {
+          setFeedback("Your message was sent, but the conversation could not refresh.");
+        });
+      })
+      .catch(function () {
+        setFeedback("Message could not be sent. Your text is still here so you can retry.");
+      });
   }
 
   document.getElementById("chatForm").addEventListener("submit", function (e) {
@@ -154,10 +199,21 @@
   });
 
   checkStatus();
-  loadChat();
+  loadChat().catch(function () {
+    setFeedback("Could not load the conversation. Try again shortly.");
+  });
   // Poll for updates every 10 seconds, matching the Air backend's poll,
   // so new Jesus replies appear without reloading the page.
-  setInterval(function () { checkStatus(); loadChat(); }, 10000);
+  setInterval(function () {
+    checkStatus();
+    loadChat().catch(function () {
+      setFeedback("Could not refresh the conversation. Try again shortly.");
+    });
+  }, 10000);
+
+  document.getElementById("chatInput").addEventListener("input", function () {
+    if (!this.value.trim()) setFeedback("");
+  });
 </script>
 </body>
 </html>

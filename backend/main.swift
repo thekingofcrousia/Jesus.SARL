@@ -218,7 +218,11 @@ struct JesusBackend {
 
                         // A visitor may write while the model is thinking. Fold
                         // those messages into this reply before anything is posted.
-                        guard let latestHistory = await fetchHistory() else { break }
+                        guard let latestHistory = await fetchHistory() else {
+                            print("Could not verify the batch before posting; will retry next poll.")
+                            reply = nil
+                            break
+                        }
                         let includedIds = Set(batch.map { $0.id })
                         let arrivedDuringGeneration = latestHistory.filter {
                             $0.id > lastId && $0.author != "Jesus" && !includedIds.contains($0.id)

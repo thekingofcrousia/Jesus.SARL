@@ -3,3 +3,4 @@ last_id.txt
 jesus-backend
 pcc-check
 .DS_Store
+worker.lock

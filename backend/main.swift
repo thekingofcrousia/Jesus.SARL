@@ -21,6 +21,7 @@
 // if present. Otherwise a short built-in prompt is used.
 
 import Foundation
+import Darwin
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -67,6 +68,27 @@ func loadLastId() -> Int {
 
 func saveLastId(_ id: Int) {
     try? String(id).write(toFile: lastIdPath, atomically: true, encoding: .utf8)
+}
+
+
+func acquireWorkerLock() -> Int32? {
+    let lockPath = FileManager.default.currentDirectoryPath + "/worker.lock"
+    let descriptor = open(lockPath, O_CREAT | O_RDWR, mode_t(0o600))
+    guard descriptor >= 0 else {
+        perror("open worker lock")
+        return nil
+    }
+    guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
+        print("Another Jesus.SARL worker already holds the lock; exiting without replying.")
+        close(descriptor)
+        return nil
+    }
+    return descriptor
+}
+
+func releaseWorkerLock(_ descriptor: Int32) {
+    flock(descriptor, LOCK_UN)
+    close(descriptor)
 }
 
 func sendHeartbeat() async {
@@ -175,9 +197,12 @@ func generateReply(persona: String, history: [ChatMessage], visitorMessages: [Ch
 @main
 struct JesusBackend {
     static func main() async {
+        guard let workerLock = acquireWorkerLock() else { return }
+        defer { releaseWorkerLock(workerLock) }
+
         let persona = loadPrompt()
         var lastId = loadLastId()
-        print("Jesus.SARL Swift backend running. Last handled id:", lastId)
+        print("Jesus.SARL AI bridge running. PID: \(getpid()). Last handled id: \(lastId)")
         await sendHeartbeat()
         var lastHeartbeat = Date()
         while true {

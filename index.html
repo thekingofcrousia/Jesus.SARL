@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jesus</title>
+<title>Jesus — the open line</title>
 <style>
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: #fff;
-    color: #111;
+    background: #f4f1e9;
+    color: #292b27;
     margin: 0;
     line-height: 1.5;
   }
   main {
-    max-width: 640px;
+    max-width: 720px;
     width: 100%;
     height: 100dvh;
     margin: 0 auto;
@@ -23,33 +23,39 @@
     flex-direction: column;
   }
   header {
-    padding: 1rem 1.5rem 0.75rem;
-    border-bottom: 1px solid #eee;
+    padding: 1.1rem 1.5rem 1rem;
+    border-bottom: 1px solid #ddd6c8;
+    background: rgba(255, 253, 247, 0.78);
   }
-  h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
+  .eyebrow { display: flex; align-items: center; gap: 0.55rem; margin: 0 0 0.15rem; color: #776540; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.13em; }
+  .brand-mark { display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem; border: 1px solid #b69a5d; border-radius: 50%; color: #8a7140; font-size: 0.8rem; letter-spacing: 0; }
+  h1 { color: #282a26; font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 500; line-height: 1.1; margin: 0; }
   .status { display: flex; align-items: center; gap: 0.5rem; color: #555; font-size: 0.9rem; margin: 0.35rem 0 0; }
   .status-dot { width: 0.6rem; height: 0.6rem; flex: none; border-radius: 50%; background: #9a7400; }
-  .status[data-state="open"] .status-dot { background: #25814d; }
+  .status[data-state="open"] .status-dot { background: #397451; box-shadow: 0 0 0 4px rgba(57, 116, 81, 0.14); }
   .status[data-state="unknown"] .status-dot { background: #777; }
-  .public-note { margin: 0.65rem 0 0; padding: 0.55rem 0.7rem; border-left: 3px solid #c9a63c; border-radius: 4px; background: #fff9e8; color: #51451f; font-size: 0.85rem; }
+  .public-note { margin: 0.65rem 0 0; padding: 0.55rem 0.7rem; border-left: 3px solid #b69a5d; border-radius: 4px; background: #f4edda; color: #4b4029; font-size: 0.84rem; }
 
   #chat {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
     min-height: 0;
+    background: radial-gradient(ellipse at 50% 0, rgba(255, 255, 255, 0.55), transparent 68%);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
   .msg {
-    max-width: 80%;
-    padding: 0.7rem 1rem;
-    border-radius: 18px;
+    max-width: min(88%, 40rem);
+    padding: 0.85rem 1.05rem;
+    border-radius: 1.1rem;
+    overflow-wrap: anywhere;
+    box-shadow: 0 5px 18px rgba(44, 39, 29, 0.06);
   }
-  .msg small { display: block; font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.15rem; }
-  .msg.jesus { align-self: flex-start; background: #f0f0f0; }
-  .msg.visitor { align-self: flex-end; background: #111; color: #fff; }
+  .msg small { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; opacity: 0.65; margin-bottom: 0.25rem; }
+  .msg.jesus { align-self: flex-start; background: #fffdf7; border: 1px solid #e9e1d0; border-left: 3px solid #b69a5d; border-radius: 1.1rem 1.1rem 1.1rem 0.35rem; }
+  .msg.visitor { align-self: flex-end; background: #293a32; color: #fff; border-radius: 1.1rem 1.1rem 0.35rem 1.1rem; }
   .composer { border-top: 1px solid #eee; }
   .feedback { margin: 0; padding: 0.65rem 1.5rem 0; color: #8b2525; font-size: 0.9rem; }
   .feedback[hidden] { display: none; }
@@ -76,16 +82,31 @@
     padding: 0.6rem 1.2rem;
     border-radius: 999px;
     border: none;
-    background: #111;
+    background: #293a32;
     color: #fff;
     cursor: pointer;
     flex-shrink: 0;
+    transition: background 140ms ease, transform 140ms ease;
+  }
+  button:hover { background: #385246; }
+  button:active { transform: translateY(1px); }
+  button:focus-visible, textarea:focus-visible, #chat:focus-visible { outline: 3px solid #b69a5d; outline-offset: 2px; }
+  @media (max-width: 480px) {
+    header { padding: 0.9rem 1rem 0.8rem; }
+    #chat { padding: 1rem; }
+    form { padding: 0.75rem 1rem; }
+    .feedback { padding: 0.55rem 1rem 0; }
+    .msg { max-width: 94%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
   }
 </style>
 </head>
 <body>
 <main>
   <header>
+    <p class="eyebrow"><span class="brand-mark" aria-hidden="true">☎</span> JESUS.SARL · THE OPEN LINE</p>
     <h1>Jesus</h1>
     <p class="status" id="connectionStatus" data-state="waiting" aria-live="polite">
       <span class="status-dot" aria-hidden="true"></span>
@@ -212,7 +233,7 @@
   }, 10000);
 
   document.getElementById("chatInput").addEventListener("input", function () {
-    if (!this.value.trim()) setFeedback("");
+    setFeedback("");
   });
 </script>
 </body>

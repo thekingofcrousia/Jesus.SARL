@@ -223,6 +223,9 @@
     overflow-wrap: break-word;
     box-shadow: var(--shadow-card);
     position: relative;
+  }
+
+  .msg.new-msg {
     animation: fadeIn 200ms ease;
   }
 
@@ -742,12 +745,20 @@
       })
       .then(function(data) {
         var isOpen = data && data.status === "in";
-        connectionStatus.dataset.state = isOpen ? "online" : "offline";
-        statusNote.textContent = isOpen ? "Reply worker online" : "Reply worker offline";
+        var nextState = isOpen ? "online" : "offline";
+        var nextNote = isOpen ? "Reply worker online" : "Reply worker offline";
+        if (connectionStatus.dataset.state !== nextState) {
+          connectionStatus.dataset.state = nextState;
+        }
+        if (statusNote.textContent !== nextNote) {
+          statusNote.textContent = nextNote;
+        }
       })
       .catch(function() {
-        connectionStatus.dataset.state = "unknown";
-        statusNote.textContent = "Status unavailable";
+        if (connectionStatus.dataset.state !== "unknown") {
+          connectionStatus.dataset.state = "unknown";
+          statusNote.textContent = "Status unavailable";
+        }
       })
       .finally(function() { clearTimeout(timeout); });
   }
@@ -793,11 +804,9 @@
     return div;
   }
 
-  function renderMessages(messages) {
-    var prevScrollHeight = chatContainer.scrollHeight;
-    var prevScrollTop = chatContainer.scrollTop;
-    var isNearBottom = firstLoad || (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 180);
+  var lastRenderedKey = null;
 
+  function renderMessages(messages) {
     var displayMessages = messages;
     if (!showingAllHistory && messages.length > INITIAL_MESSAGE_LIMIT) {
       displayMessages = messages.slice(-INITIAL_MESSAGE_LIMIT);
@@ -807,6 +816,50 @@
       loadEarlierBtn.hidden = true;
     }
 
+    // Always update typing area state without re-rendering messages
+    var lastMsg = messages[messages.length - 1];
+    var isWaitingForJesus = lastMsg && lastMsg.author !== "Jesus";
+    typingArea.hidden = !isWaitingForJesus;
+
+    var renderKey = displayMessages.map(function(m) { return m.id; }).join(",");
+    if (renderKey === lastRenderedKey) {
+      // Content has not changed: avoid re-rendering DOM completely
+      return;
+    }
+
+    var prevScrollHeight = chatContainer.scrollHeight;
+    var prevScrollTop = chatContainer.scrollTop;
+    var isNearBottom = firstLoad || (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 180);
+
+    // If existing messages are already rendered and only new messages arrived:
+    if (lastRenderedKey && !showingAllHistory && chatStream.children.length > 0) {
+      var existingIds = new Set(Array.from(chatStream.querySelectorAll(".msg")).map(function(el) { return parseInt(el.dataset.id, 10); }));
+      var newItems = displayMessages.filter(function(m) { return !existingIds.has(m.id); });
+      if (newItems.length > 0 && newItems.length < displayMessages.length) {
+        var lastDivider = chatStream.querySelector(".date-divider:last-of-type");
+        var lastDay = lastDivider ? lastDivider.textContent : null;
+        newItems.forEach(function(m) {
+          var day = getDayKey(m.created_at);
+          if (day !== lastDay) {
+            var divider = document.createElement("div");
+            divider.className = "date-divider";
+            divider.textContent = day;
+            chatStream.appendChild(divider);
+            lastDay = day;
+          }
+          var el = createMessageElement(m);
+          el.classList.add("new-msg");
+          chatStream.appendChild(el);
+        });
+        lastRenderedKey = renderKey;
+        if (isNearBottom) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        return;
+      }
+    }
+
+    // Full render on first load or when "load earlier" clicked
     chatStream.innerHTML = "";
     var lastDay = null;
 
@@ -822,10 +875,7 @@
       chatStream.appendChild(createMessageElement(m));
     });
 
-    // Check if the last message is from a Visitor (awaiting a reply)
-    var lastMsg = messages[messages.length - 1];
-    var isWaitingForJesus = lastMsg && lastMsg.author !== "Jesus";
-    typingArea.hidden = !isWaitingForJesus;
+    lastRenderedKey = renderKey;
 
     if (firstLoad || isNearBottom) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
